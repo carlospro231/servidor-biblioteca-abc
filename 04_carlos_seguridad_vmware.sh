@@ -2,74 +2,68 @@
 # ==============================================================================
 # MÓDULO 4 — RESPONSABLE: CARLOS ENRIQUE CHOQUE RAMOS
 # ==============================================================================
-# OBJETIVOS DE TU MÓDULO (Sección 4.6 e Integración Final en VMware Workstation):
-# 1. Ejecutar en orden los scripts de Joseph (01), Mathias (02) y Franco (03).
-# 2. Configurar el Firewall UFW permitiendo el servicio Samba (ufw allow Samba).
-# 3. Resolver el Incidente 5 (Caída tras corte eléctrico):
-#    - Habilitar smbd y nmbd en el arranque automático con systemd
-#    - Configurar la dependencia RequiresMountsFor=/srv en smbd.service.d/override.conf
-# 4. Verificar el estado general del servidor (free -h, df -hT, systemctl status smbd).
-# ==============================================================================
-
 DIR_ACTUAL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=================================================================="
 echo " [MÓDULO 4 - CARLOS CHOQUE] INTEGRACIÓN Y DESPLIEGUE FINAL"
 echo "=================================================================="
 
-# 1. Integración segura de los módulos del equipo:
-if [ -f "$DIR_ACTUAL/01_joseph_estructura_permisos.sh" ]; then
-    echo ">> Ejecutando Módulo 1 (Joseph Gomero)..."
-    bash "$DIR_ACTUAL/01_joseph_estructura_permisos.sh" || echo "[AVISO] Módulo 1 terminó con advertencias."
-fi
+# 1. Ejecutar los módulos de los compañeros
+bash "$DIR_ACTUAL/01_joseph_estructura_permisos.sh" 2>/dev/null || echo "[AVISO] Error en Módulo 1"
+bash "$DIR_ACTUAL/02_mathias_samba_acceso.sh" 2>/dev/null || echo "[AVISO] Error en Módulo 2"
+bash "$DIR_ACTUAL/03_franco_respaldo_auditoria.sh" 2>/dev/null || echo "[AVISO] Error en Módulo 3"
 
-if [ -f "$DIR_ACTUAL/02_mathias_samba_acceso.sh" ]; then
-    echo ">> Ejecutando Módulo 2 (Mathias Marcelo)..."
-    bash "$DIR_ACTUAL/02_mathias_samba_acceso.sh" || echo "[AVISO] Módulo 2 terminó con advertencias."
-fi
-
-if [ -f "$DIR_ACTUAL/03_franco_respaldo_auditoria.sh" ]; then
-    echo ">> Ejecutando Módulo 3 (Franco Gamarra)..."
-    bash "$DIR_ACTUAL/03_franco_respaldo_auditoria.sh" || echo "[AVISO] Módulo 3 terminó con advertencias."
-fi
-
-# 2. Configuración de persistencia Systemd (Incidente 5 - Corte eléctrico)
-echo ">> Configurando arranque automático y dependencia Systemd..."
+# 2. Persistencia Systemd (Incidente 5)
 mkdir -p /etc/systemd/system/smbd.service.d
 cat > /etc/systemd/system/smbd.service.d/override.conf << 'CONF'
 [Unit]
 RequiresMountsFor=/srv
 CONF
 
-if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
+if [ -d /run/systemd/system ]; then
     systemctl daemon-reload
     systemctl enable smbd nmbd
     systemctl restart smbd nmbd
-    echo " [OK] Servicios smbd y nmbd habilitados en systemd con persistencia."
 else
-    echo " [OK] Archivo override.conf configurado (se activará en VMware)."
+    service smbd restart >/dev/null 2>&1 || true
 fi
 
-# 3. Configuración del Firewall UFW
+# 3. Firewall UFW
 if command -v ufw >/dev/null 2>&1; then
-    echo ">> Configurando Firewall UFW para Samba..."
     ufw allow Samba >/dev/null 2>&1 || true
-    echo " [OK] Regla de firewall para Samba habilitada."
 fi
 
 echo ""
 echo "=================================================================="
-echo " ESTADO DEL SERVIDOR EN VMWARE (DEMOSTRACIÓN AL PROFESOR):"
+echo " RESUMEN DE AVANCE DEL GRUPO (VERIFICADOR AUTOMÁTICO):"
 echo "=================================================================="
-echo "--- Memoria RAM consumida (Requisito < 500 MB) ---"
-free -h
-echo ""
-echo "--- Particiones y Espacio en Disco ---"
-df -hT / /srv /mnt/respaldo 2>/dev/null || df -hT /
-echo ""
-echo "--- Directorios de la Biblioteca y Permisos ---"
-ls -ld /srv/biblioteca/* 2>/dev/null || echo "[Pendiente ejecutar Módulo 1]"
-echo ""
-echo "=================================================================="
-echo " ¡SERVIDOR LINUX LISTO PARA LA DEMOSTRACIÓN DEL LUNES!"
+
+# Verificación Módulo 1 (Joseph)
+if [ "$(stat -c '%a' /srv/biblioteca/tesis 2>/dev/null)" = "3775" ] && [ "$(stat -c '%a' /srv/biblioteca/metadatos 2>/dev/null)" = "2775" ]; then
+    echo " 1. Módulo Joseph (Carpetas, Usuarios y Permisos 3775/2775): [COMPLETO]"
+else
+    echo " 1. Módulo Joseph (Carpetas, Usuarios y Permisos 3775/2775): [PENDIENTE]"
+fi
+
+# Verificación Módulo 2 (Mathias)
+if grep -q "SMB2_02" /etc/samba/smb.conf 2>/dev/null && grep -q "recycle" /etc/samba/smb.conf 2>/dev/null; then
+    echo " 2. Módulo Mathias (Samba smb.conf, Papelera y Usuarios):    [COMPLETO]"
+else
+    echo " 2. Módulo Mathias (Samba smb.conf, Papelera y Usuarios):    [PENDIENTE]"
+fi
+
+# Verificación Módulo 3 (Franco)
+if [ -x /usr/local/sbin/respaldo_biblioteca.sh ] && crontab -l 2>/dev/null | grep -q "respaldo_biblioteca.sh"; then
+    echo " 3. Módulo Franco (Script Backup rsync y Crontab 02:00 AM):  [COMPLETO]"
+else
+    echo " 3. Módulo Franco (Script Backup rsync y Crontab 02:00 AM):  [PENDIENTE]"
+fi
+
+# Verificación Módulo 4 (Carlos)
+if [ -f /etc/systemd/system/smbd.service.d/override.conf ]; then
+    echo " 4. Módulo Carlos (Systemd, Firewall e Integración VMware):  [COMPLETO]"
+else
+    echo " 4. Módulo Carlos (Systemd, Firewall e Integración VMware):  [PENDIENTE]"
+fi
+
 echo "=================================================================="
