@@ -8,12 +8,12 @@ echo "=================================================================="
 echo " [MÓDULO 4 - CARLOS CHOQUE] INTEGRACIÓN Y DESPLIEGUE FINAL"
 echo "=================================================================="
 
-# 1. Ejecutar los módulos de los compañeros
+# 1. Ejecutar los módulos de los compañeros (si ya tienen código)
 bash "$DIR_ACTUAL/01_joseph_estructura_permisos.sh" 2>/dev/null || echo "[AVISO] Error en Módulo 1"
 bash "$DIR_ACTUAL/02_mathias_samba_acceso.sh" 2>/dev/null || echo "[AVISO] Error en Módulo 2"
 bash "$DIR_ACTUAL/03_franco_respaldo_auditoria.sh" 2>/dev/null || echo "[AVISO] Error en Módulo 3"
 
-# 2. Persistencia Systemd (Incidente 5)
+# 2. Resolver Incidente 5: Dependencia de montaje en Systemd y arranque automático
 mkdir -p /etc/systemd/system/smbd.service.d
 cat > /etc/systemd/system/smbd.service.d/override.conf << 'CONF'
 [Unit]
@@ -28,10 +28,16 @@ else
     service smbd restart >/dev/null 2>&1 || true
 fi
 
-# 3. Firewall UFW
-if command -v ufw >/dev/null 2>&1; then
-    ufw allow Samba >/dev/null 2>&1 || true
-fi
+# 3. Seguridad Perimetral: Instalar y abrir Samba en el Firewall UFW y Cuotas
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y ufw quota
+ufw allow Samba
+ufw --force enable 2>/dev/null || true
+
+# 4. Diagnóstico de consumo de RAM (< 500 MB) y particiones
+free -h
+df -hT
 
 echo ""
 echo "=================================================================="
