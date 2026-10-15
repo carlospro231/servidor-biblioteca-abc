@@ -1,5 +1,5 @@
-cat > 01_joseph_estructura_permisos.sh << 'EOF'
 #!/bin/bash
+
 # 1. Crear las 5 carpetas bajo el estándar FHS (/srv/biblioteca/)
 mkdir -p /srv/biblioteca/publico
 mkdir -p /srv/biblioteca/departamental
@@ -47,10 +47,3 @@ chmod 664 /srv/biblioteca/tesis/tesis_fiee_2026.pdf
 echo "Catalogo MARC21 Biblioteca ABC" > /srv/biblioteca/metadatos/catalogo_general.csv
 chown cat01:catalogacion /srv/biblioteca/metadatos/catalogo_general.csv
 chmod 664 /srv/biblioteca/metadatos/catalogo_general.csv
-EOF
-
-sudo bash 04_carlos_seguridad_vmware.sh
-
-git add 01_joseph_estructura_permisos.sh
-git commit -m "Modulo 1 Completado y Verificado"
-git push
